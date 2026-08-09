@@ -7,7 +7,7 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0);
 #define LEDPIN 5
 #define BUZZERPIN 17
 
-#define LIGHTPIN 2
+#define LIGHTPIN 34
 #define TEMPPIN 4
 
 #define SDA_PIN 21
