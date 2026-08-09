@@ -1,8 +1,10 @@
 #include "DHT.h"
 #include <Wire.h>
 #include <U8g2lib.h>
-U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0);
+#include "secrets.h"
+#include <WiFi.h>
 
+U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0);
 
 #define LEDPIN 5
 #define BUZZERPIN 17
@@ -11,7 +13,7 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0);
 #define TEMPPIN 4
 
 #define SDA_PIN 21
-#define SCK_PIN 22
+#define SCL_PIN 22
 
 #define DHTTYPE DHT11
 DHT dht(TEMPPIN, DHTTYPE);
@@ -36,6 +38,21 @@ SystemData sys;
 const int LIGHT_THRESH = 2000;
 const int TEMP_THRESH = 23;
 
+void connectToWiFi() {
+  Serial.print("Connecting to Wi-fi...");
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(2000);
+    Serial.print(".");
+    Serial.println();
+    Serial.print("Wi-Fi connected!");
+    Serial.println(WiFi.localIP());
+  }
+
+}
+
 void setup() {
 
   Serial.begin(115200);
@@ -45,10 +62,11 @@ void setup() {
   pinMode(TEMPPIN, INPUT);
   pinMode(LIGHTPIN, INPUT);
 
-  Wire.begin(SDA_PIN, SCK_PIN);
+  Wire.begin(SDA_PIN, SCL_PIN);
 
   dht.begin();
   display.begin();
+  connectToWiFi();
 }
 
 void loop() {
@@ -164,7 +182,7 @@ void taskHandleOLED(unsigned long now) {
   display.clearBuffer();
 
   display.setFont(u8g2_font_6x10_tf);
-  display.drawStr(0, 9, "ENVIREONMENT MONITOR");
+  display.drawStr(0, 9, "ENVIRONMENT MONITOR");
 
   display.drawHLine(0, 11, 128);
   display.setCursor(0, 22);
