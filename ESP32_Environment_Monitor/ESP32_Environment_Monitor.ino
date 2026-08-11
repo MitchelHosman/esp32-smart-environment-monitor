@@ -3,8 +3,11 @@
 #include <U8g2lib.h>
 #include "secrets.h"
 #include <WiFi.h>
+#include <WebServer.h>
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0);
+
+WebServer server(80);
 
 #define LEDPIN 5
 #define BUZZERPIN 17
@@ -31,26 +34,150 @@ struct SystemData {
   bool tempAlarm = false;
   bool lightAlarm = false;
 
-   bool dhtValid = true;
+  bool dhtValid = false;
+
+  bool wifiConnected = false;
 };
 SystemData sys;
 
 const int LIGHT_THRESH = 2000;
 const int TEMP_THRESH = 23;
 
-void connectToWiFi() {
-  Serial.print("Connecting to Wi-fi...");
+void handleRoot() {
+  String html = "";
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  html += "<!DOCTYPE html>";
+  html += "<html>";
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(2000);
-    Serial.print(".");
-    Serial.println();
-    Serial.print("Wi-Fi connected!");
-    Serial.println(WiFi.localIP());
+  html += "<head>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  html += "<title>ESP32 Environment Monitor</title>";
+
+  html += "<style>";
+
+  html += "body {";
+  html += "font-family: Arial, sans-serif;";
+  html += "background-color: #f2f2f2;";
+  html += "text-align: center;";
+  html += "margin: 0;";
+  html += "padding: 20px;";
+  html += "}";
+
+  html += "h1 {";
+  html += "margin-bottom: 25px;";
+  html += "}";
+
+  html += ".dashboard {";
+  html += "max-width: 700px;";
+  html += "margin: auto;";
+  html += "display: grid;";
+  html += "grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));";
+  html += "gap: 15px;";
+  html += "}";
+
+  html += ".card {";
+  html += "background: white;";
+  html += "padding: 20px;";
+  html += "border-radius: 10px;";
+  html += "box-shadow: 0 2px 6px rgba(0,0,0,0.15);";
+  html += "}";
+
+  html += ".value {";
+  html += "font-size: 28px;";
+  html += "font-weight: bold;";
+  html += "}";
+
+  html += "</style>";
+  html += "</head>";
+  html += "<body>";
+  html += "<h1>ESP32 Environment Monitor</h1>";
+  html += "<div class='dashboard'>";
+
+  // Temperature
+  html += "<div class='card'>";
+  html += "<h2>Temperature</h2>";
+
+  if (sys.dhtValid) {
+    html += "<div class='value'>";
+    html += String(sys.temperature, 1);
+    html += " &deg;C";
+    html += "</div>";
+  }
+  else {
+    html += "<div class='value'>ERROR</div>";
   }
 
+  html += "</div>";
+
+  // Humidity
+  html += "<div class='card'>";
+  html += "<h2>Humidity</h2>";
+
+  if (sys.dhtValid) {
+    html += "<div class='value'>";
+    html += String(sys.humidity, 1);
+    html += " %";
+    html += "</div>";
+  }
+  else {
+    html += "<div class='value'>ERROR</div>";
+  }
+
+  html += "</div>";
+
+  // Light
+  html += "<div class='card'>";
+  html += "<h2>Light Level</h2>";
+
+  html += "<div class='value'>";
+  html += String(sys.lightLevel);
+  html += "</div>";
+
+  html += "</div>";
+
+  // Alarm
+  html += "<div class='card'>";
+  html += "<h2>Alarm</h2>";
+
+  html += "<div class='value'>";
+
+  if (sys.alarmActive) {
+    html += "ACTIVE";
+  }
+  else if (!sys.alarmEnabled) {
+    html += "DISABLED";
+  }
+  else {
+    html += "NORMAL";
+  }
+
+  html += "</div>";
+
+  html += "</div>";
+
+  // Wi-Fi
+  html += "<div class='card'>";
+  html += "<h2>Wi-Fi</h2>";
+
+  html += "<div class='value'>";
+
+  if (sys.wifiConnected) {
+    html += "CONNECTED";
+  }
+  else {
+    html += "DISCONNECTED";
+  }
+
+  html += "</div>";
+
+  html += "</div>";
+
+  html += "</div>";
+
+  html += "</body>";
+  html += "</html>";
+
+  server.send(200, "text/html", html);
 }
 
 void setup() {
@@ -66,7 +193,8 @@ void setup() {
 
   dht.begin();
   display.begin();
-  connectToWiFi();
+
+  WiFi.mode(WIFI_STA);
 }
 
 void loop() {
@@ -83,6 +211,10 @@ void loop() {
   taskHandleOLED(now);
 
   taskProcessSerial();
+
+  taskHandleWiFi(now);
+
+  server.handleClient();
 
 }
 
@@ -333,4 +465,45 @@ void taskProcessSerial() {
       Serial.println("Unknown command");
     }
   }
+}
+
+void taskHandleWiFi(unsigned long now) {
+  static unsigned long lastAttempt = 0;
+  static bool connecting = false;
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    if (!sys.wifiConnected) {
+      sys.wifiConnected = true;
+
+      Serial.println();
+      Serial.println("Wi-Fi Connected!");
+      Serial.print("IP Address: ");
+      Serial.println(WiFi.localIP());
+
+      server.on("/", handleRoot);
+      server.begin();
+      Serial.println("Web server started.");
+      }
+    connecting = false;
+    return;
+    }
+
+    sys.wifiConnected = false;
+
+    if (!connecting && (now - lastAttempt >= 1000)) {
+      Serial.println("Attempting Wi-Fi connection...");
+
+      WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+      connecting = true;
+      lastAttempt = now;
+    }
+
+    if (connecting && (now - lastAttempt >= 5000)) {
+      Serial.println("Wi-Fi connection attempt timed out.");
+
+      connecting = false;
+      lastAttempt = now;
+    }
 }
