@@ -25,7 +25,7 @@ The smart environment monitor is a system designed to track the temperature, hum
 - Status LED
 - SH1106 128x64 OLED display
 
-<img src="ESP32_Environment_Monitor/images/OLED_display.jpeg" width="500">
+<img src="ESP32_Environment_Monitor/images/OLED_dashboard.jpeg" width="500">
 
 # System Architecture
 The embedded firmware is organized into separate tasks responsible for individual system functions. Collected data is stored in a centralized structure called 'systemData'. The use of non-blocking firmware using millis()-based task scheduling allows for each separate task to periodically update 'systemData', manage the OLED and web interface without interruption.
