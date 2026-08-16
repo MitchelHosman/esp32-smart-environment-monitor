@@ -1,7 +1,7 @@
 # esp32-smart-environment-monitor
 The smart environment monitor is a system designed to track the temperature, humidity and light level of any given environment. The system utilizes an ESP32 microcontroller to collect sensor data, display the information in real-time on an OLED display and has configurable alerts when variables such as light or temperature exceed set thresholds.
 
-![Overhead View of Hardware](images/project_overhead.jpeg)
+<img src="ESP32_Environment_Monitor/images/project_overhead.jpeg" width="500">
 
 # Current Features
 - Temperature and humidity tracking using a DHT11 sensor
@@ -25,7 +25,7 @@ The smart environment monitor is a system designed to track the temperature, hum
 - Status LED
 - SH1106 128x64 OLED display
 
-![Local OLED Display Dashboard](images/OLED_dashboard.jpeg)
+<img src="ESP32_Environment_Monitor/images/OLED_display.jpeg" width="500">
 
 # System Architecture
 The embedded firmware is organized into separate tasks responsible for individual system functions. Collected data is stored in a centralized structure called 'systemData'. The use of non-blocking firmware using millis()-based task scheduling allows for each separate task to periodically update 'systemData', manage the OLED and web interface without interruption.
@@ -50,7 +50,7 @@ The dashboard currently displays:
 - Alarm status
 - Wi-Fi connection status
 
-![Web Based HTTP Dashboard](images/web_dashboard.jpeg)
+<img src="ESP32_Environment_Monitor/images/web_dashboard.jpeg" width="500">
 
 # Planned features
 - Remote system status and alarm control
